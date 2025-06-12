@@ -138,8 +138,8 @@ static Key keys[] = {
     TAGKEYS(                        XK_e,                      6)
     TAGKEYS(                        XK_r,                      7)
     { MODKEY|ShiftMask,             XK_Escape,                 quit,           {0} },
-    { MODKEY,                       XK_i,                      shiftview,      { .i = +1 } },
-    { MODKEY,                       XK_u,                      shiftview,      { .i = -1 } }
+    { MODKEY,                       XK_s,                      shiftview,      { .i = +1 } },
+    { MODKEY,                       XK_a,                      shiftview,      { .i = -1 } }
 };
 
 /* button definitions */
