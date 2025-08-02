@@ -35,8 +35,8 @@ static const Rule rules[] = {
 	 *	WM_NAME(STRING) = title
 	 */
 	/* class                    instance            title tags mask iscentered isfloating monitor */
-    { "librewolf",                  NULL,               NULL, 1 << 3,   0,         0,         -1 }, 
-    { "Chromium",                   NULL,               NULL, 1 << 3,   0,         0,         -1 }, 
+    { "librewolf",                  NULL,               NULL, 1 << 3,   0,         0,          1 }, 
+    { "Chromium",                   NULL,               NULL, 1 << 3,   0,         0,          1 }, 
     { "vieb",                       "vieb",             NULL, 1 << 3,   0,         0,         -1 },
     { "ONLYOFFICE Desktop Editors", "DesktopEditors",   NULL, 1 << 4,   0,         0,         -1 },
     { "Telegram",                   "Telegram",         NULL, 1 << 6,   0,         0,         -1 },
