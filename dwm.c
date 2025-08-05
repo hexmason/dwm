@@ -37,6 +37,7 @@
 #include <X11/Xproto.h>
 #include <X11/Xresource.h>
 #include <X11/Xutil.h>
+#include <X11/XKBlib.h>
 #ifdef XINERAMA
 #include <X11/extensions/Xinerama.h>
 #endif /* XINERAMA */
@@ -108,11 +109,13 @@ struct Client {
 	int basew, baseh, incw, inch, maxw, maxh, minw, minh;
 	int bw, oldbw;
 	unsigned int tags;
-	int isfixed, iscentered, isfloating, isurgent, neverfocus, oldstate, isfullscreen;
+	int isfixed, iscentered, isfloating, isurgent, neverfocus, oldstate, isfullscreen, isforegrounded;
 	Client *next;
 	Client *snext;
+	Client *tnext;
 	Monitor *mon;
 	Window win;
+	unsigned char kbdgrp;
 };
 
 typedef struct {
@@ -148,6 +151,7 @@ struct Monitor {
 	Client *clients;
 	Client *sel;
 	Client *stack;
+	Client *foregrounded;
 	Monitor *next;
 	Window barwin;
 	const Layout *lt[2];
@@ -207,6 +211,7 @@ static void maprequest(XEvent *e);
 static void monocle(Monitor *m);
 static void motionnotify(XEvent *e);
 static void movemouse(const Arg *arg);
+static void movecenter(const Arg *arg);
 static Client *nexttiled(Client *c);
 static void pop(Client *);
 static void propertynotify(XEvent *e);
@@ -244,7 +249,10 @@ static void tag(const Arg *arg);
 static void tagmon(const Arg *arg);
 static void tile(Monitor *);
 static void togglebar(const Arg *arg);
+static void toggleforegrounded(const Arg *arg);
 static void togglefloating(const Arg *arg);
+static void togglefullscr(const Arg *arg);
+static void togglescratch(const Arg *arg);
 static void toggletag(const Arg *arg);
 static void toggleview(const Arg *arg);
 static void unfocus(Client *c, int setfocus);
@@ -317,6 +325,8 @@ struct Pertag {
 	const Layout *ltidxs[LENGTH(tags) + 1][2]; /* matrix of tags and layouts indexes  */
 	int showbars[LENGTH(tags) + 1]; /* display bar for the current tag */
 };
+
+static unsigned int scratchtag = 1 << LENGTH(tags);
 
 /* compile-time check if all tags fit into an unsigned int bit array. */
 struct NumTags { char limitexceeded[LENGTH(tags) > 31 ? -1 : 1]; };
@@ -463,6 +473,21 @@ attachstack(Client *c)
 }
 
 void
+attachforegrounded (Client *c)
+{
+	c->tnext = c->mon->foregrounded;
+	c->mon->foregrounded = c;
+}
+
+void
+detachforegrounded (Client *c)
+{
+	Client **tc;
+	for (tc = &c->mon->foregrounded; *tc && *tc != c; tc = &(*tc)->tnext);
+	*tc = c->tnext;
+}
+
+void
 buttonpress(XEvent *e)
 {
 	unsigned int i, x, click;
@@ -502,6 +527,39 @@ buttonpress(XEvent *e)
 		if (click == buttons[i].click && buttons[i].func && buttons[i].button == ev->button
 		&& CLEANMASK(buttons[i].mask) == CLEANMASK(ev->state))
 			buttons[i].func(click == ClkTagBar && buttons[i].arg.i == 0 ? &arg : &buttons[i].arg);
+}
+
+Client *
+nextforegrounded(Client *c)
+{
+	for (; c && (!c->isforegrounded || !ISVISIBLE(c)); c = c->tnext);
+	return c;
+}
+
+void
+arrangeforegrounded (Monitor *m)
+{
+	unsigned int n,i,x,y,w,h;
+	Client *c;
+
+	for (n = 0, c = nextforegrounded(m->foregrounded); c; c = nextforegrounded(c->tnext), n++);
+	if (n == 0)
+		return;
+
+	for (i = 0, c = nextforegrounded(m->foregrounded); c; c = nextforegrounded(c->tnext), i++){
+		if (n == 1) {
+			x = m->mx + (m->mw - m->mw * fgw) / 2;
+			y = m->my + (m->mh - m->mh * fgh) / 2;
+			w = (m->mw * fgw) - (2 * (m->foregrounded->bw));
+			h = (m->mh * fgh) - (2 * (m->foregrounded->bw));
+		} else {
+			x = (n - 1 - i) * (m->mw / n);
+			y = m->my + (m->mh - m->mh * fgh) / 2;
+			w = (m->mw * (1 / (float)n)) - (2 * (m->foregrounded->bw));
+			h = (m->mh * fgh) - (2 * (m->foregrounded->bw));
+		}
+		resize(c,x,y,w,h,0);
+	}
 }
 
 void
@@ -860,6 +918,7 @@ focus(Client *c)
 			selmon = c->mon;
 		if (c->isurgent)
 			seturgent(c, 0);
+		XkbLockGroup(dpy, XkbUseCoreKbd, c->kbdgrp);
 		detachstack(c);
 		attachstack(c);
 		grabbuttons(c, 1);
@@ -1122,6 +1181,7 @@ manage(Window w, XWindowAttributes *wa)
 	Client *c, *t = NULL;
 	Window trans = None;
 	XWindowChanges wc;
+	XkbStateRec kbd_state;
 
 	c = ecalloc(1, sizeof(Client));
 	c->win = w;
@@ -1151,6 +1211,14 @@ manage(Window w, XWindowAttributes *wa)
 		&& (c->x + (c->w / 2) < c->mon->wx + c->mon->ww)) ? bh : c->mon->my);
 	c->bw = borderpx;
 
+	selmon->tagset[selmon->seltags] &= ~scratchtag;
+	if (!strcmp(c->name, scratchpadname)) {
+		c->mon->tagset[c->mon->seltags] |= c->tags = scratchtag;
+		c->isfloating = True;
+		c->x = c->mon->wx + (c->mon->ww / 2 - WIDTH(c) / 2);
+		c->y = c->mon->wy + (c->mon->wh / 2 - HEIGHT(c) / 2);
+	}
+
 	wc.border_width = c->bw;
 	XConfigureWindow(dpy, w, CWBorderWidth, &wc);
 	XSetWindowBorder(dpy, w, scheme[SchemeNorm][ColBorder].pixel);
@@ -1174,9 +1242,13 @@ manage(Window w, XWindowAttributes *wa)
 		(unsigned char *) &(c->win), 1);
 	XMoveResizeWindow(dpy, c->win, c->x + 2 * sw, c->y, c->w, c->h); /* some windows require this */
 	setclientstate(c, NormalState);
-	if (c->mon == selmon)
-		unfocus(selmon->sel, 0);
+    if(selmon->sel && selmon->sel->isfullscreen && !c->isfloating)
+        setfullscreen(selmon->sel, 0);
+    if (c->mon == selmon)
+        unfocus(selmon->sel, 0);
 	c->mon->sel = c;
+	XkbGetState(dpy, XkbUseCoreKbd, &kbd_state);
+	c->kbdgrp = kbd_state.group;
 	arrange(c->mon);
 	XMapWindow(dpy, c->win);
 	focus(NULL);
@@ -1296,6 +1368,14 @@ movemouse(const Arg *arg)
 		selmon = m;
 		focus(NULL);
 	}
+}
+
+void
+movecenter(const Arg *arg)
+{
+	selmon->sel->x = selmon->sel->mon->mx + (selmon->sel->mon->mw - WIDTH(selmon->sel)) / 2;
+	selmon->sel->y = selmon->sel->mon->my + (selmon->sel->mon->mh - HEIGHT(selmon->sel)) / 2;
+	arrange(selmon);
 }
 
 Client *
@@ -1523,6 +1603,8 @@ sendmon(Client *c, Monitor *m)
 	detachstack(c);
 	c->mon = m;
 	c->tags = m->tagset[m->seltags]; /* assign tags of target monitor */
+    c->x = c->mon->mx + (c->mon->mw - WIDTH(c)) / 2;
+    c->y = c->mon->my + (c->mon->mh - HEIGHT(c)) / 2;
 	attach(c);
 	attachstack(c);
 	focus(NULL);
@@ -1856,6 +1938,7 @@ spawn(const Arg *arg)
 {
 	if (arg->v == dmenucmd)
 		dmenumon[0] = '0' + selmon->num;
+	selmon->tagset[selmon->seltags] &= ~scratchtag;
 	if (fork() == 0) {
 		if (dpy)
 			close(ConnectionNumber(dpy));
@@ -1927,6 +2010,24 @@ togglebar(const Arg *arg)
 }
 
 void
+toggleforegrounded(const Arg *arg)
+{
+	if (!selmon->sel)
+		return;
+	if (selmon->sel->isfullscreen) /* no support for fullscreen windows */
+		return;
+
+	selmon->sel->isforegrounded || selmon->sel->isfloating ?
+		detachforegrounded(selmon->sel) : attachforegrounded(selmon->sel);
+
+	selmon->sel->isforegrounded = selmon->sel->isfloating =
+		!selmon->sel->isfloating && !selmon->sel->isforegrounded;
+	
+	arrangeforegrounded(selmon);
+	arrange(selmon);
+}
+
+void
 togglefloating(const Arg *arg)
 {
 	if (!selmon->sel)
@@ -1939,6 +2040,37 @@ togglefloating(const Arg *arg)
 			selmon->sel->w, selmon->sel->h, 0);
 	arrange(selmon);
 }
+
+void
+togglefullscr(const Arg *arg)
+{
+    if(selmon->sel)
+        setfullscreen(selmon->sel, !selmon->sel->isfullscreen);
+}
+
+
+void
+togglescratch(const Arg *arg)
+{
+	Client *c;
+	unsigned int found = 0;
+
+	for (c = selmon->clients; c && !(found = c->tags & scratchtag); c = c->next);
+	if (found) {
+		unsigned int newtagset = selmon->tagset[selmon->seltags] ^ scratchtag;
+		if (newtagset) {
+			selmon->tagset[selmon->seltags] = newtagset;
+			focus(NULL);
+			arrange(selmon);
+		}
+		if (ISVISIBLE(c)) {
+			focus(c);
+			restack(selmon);
+		}
+	} else
+		spawn(arg);
+}
+
 
 void
 toggletag(const Arg *arg)
@@ -1994,6 +2126,7 @@ toggleview(const Arg *arg)
 void
 unfocus(Client *c, int setfocus)
 {
+	XkbStateRec kbd_state;
 	if (!c)
 		return;
 	grabbuttons(c, 0);
@@ -2002,6 +2135,8 @@ unfocus(Client *c, int setfocus)
 		XSetInputFocus(dpy, root, RevertToPointerRoot, CurrentTime);
 		XDeleteProperty(dpy, root, netatom[NetActiveWindow]);
 	}
+	XkbGetState(dpy, XkbUseCoreKbd, &kbd_state);
+	c->kbdgrp = kbd_state.group;
 }
 
 void
@@ -2012,6 +2147,12 @@ unmanage(Client *c, int destroyed)
 
 	detach(c);
 	detachstack(c);
+
+	if (c->isforegrounded){
+		detachforegrounded(c);
+		arrangeforegrounded(m);
+	}
+
 	if (!destroyed) {
 		wc.border_width = c->oldbw;
 		XGrabServer(dpy); /* avoid race conditions */

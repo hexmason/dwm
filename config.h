@@ -51,6 +51,7 @@ static const Rule rules[] = {
 static const float mfact     = 0.55; /* factor of master area size [0.05..0.95] */
 static const int nmaster     = 1;    /* number of clients in master area */
 static const int resizehints = 1;    /* 1 means respect size hints in tiled resizals */
+static const float fgw = .7,fgh = .8;
 
 static const Layout layouts[] = {
 	/* symbol     arrange function */
@@ -78,7 +79,11 @@ static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() 
 //static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbordercolor, "-sf", selfgcolor, NULL };
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, NULL };
 static const char *termcmd[]  = { "st", NULL };
+static const char *goatcmd[]  = { "sh", "-c", "mpv \"$(hurl gopher://bitreich.org/0/memecache/index.meme | grep goat | grep -E '\.(mp4|mkv|webm|avi) ' | cut -f2 -d' ' | sort -R | head -n 1)\"", NULL };
+static const char scratchpadname[] = "scratchpad";
+static const char *scratchpadcmd[] = { "st", "-t", scratchpadname, "-g", "120x34", NULL };
 
+#include "exitdwm.c"
 static Key keys[] = {
 	/* modifier                     key                        function        argument */
     { MODKEY|ShiftMask,             XK_a,                      spawn,          SHCMD("/usr/bin/ardour8") },
@@ -104,9 +109,12 @@ static Key keys[] = {
     { MODKEY|ShiftMask,             XK_Home,                   spawn,          SHCMD("~/.local/bin/start-tag") },
     { MODKEY,                       XK_F12,                    spawn,          SHCMD("~/.local/bin/rofi-bluetooth") },
     { MODKEY,                       XK_F11,                    spawn,          SHCMD("~/.local/bin/rofi-mixer") },
-    { MODKEY,                       XK_Escape,                 spawn,          SHCMD("~/.local/bin/power-menu") },
+    { MODKEY|ControlMask|ShiftMask, XK_g,                      spawn,          {.v = goatcmd } },
+	{ MODKEY,                       XK_Escape,                 exitdwm,        {0} },
+	{ MODKEY,                       XK_x,                      movecenter,     {0} },
     { MODKEY,                       XK_p,                      spawn,          {.v = dmenucmd } },
     { MODKEY|ShiftMask,             XK_Return,                 spawn,          {.v = termcmd } },
+	{ MODKEY,                       XK_grave,                  togglescratch,  {.v = scratchpadcmd } },
     { MODKEY,                       XK_b,                      togglebar,      {0} },
     { MODKEY,                       XK_j,                      focusstack,     {.i = +1 } },
     { MODKEY,                       XK_k,                      focusstack,     {.i = -1 } },
@@ -122,6 +130,8 @@ static Key keys[] = {
     { MODKEY,                       XK_m,                      setlayout,      {.v = &layouts[2]} },
     { MODKEY,                       XK_space,                  setlayout,      {0} },
     { MODKEY|ShiftMask,             XK_space,                  togglefloating, {0} },
+	{ MODKEY|Mod1Mask,              XK_f,                      togglefullscr,  {0} },
+	{ MODKEY|Mod1Mask,              XK_space,                  toggleforegrounded,     {0} },
     { MODKEY,                       XK_0,                      view,           {.ui = ~0 } },
     { MODKEY|ShiftMask,             XK_0,                      tag,            {.ui = ~0 } },
     { MODKEY,                       XK_comma,                  focusmon,       {.i = -1 } },
