@@ -12,8 +12,8 @@ static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const int vertpad            = 10;       /* vertical padding of bar */
 static const int sidepad            = 15;       /* horizontal padding of bar */
-static const char *fonts[]          = { "JetBrainsMono Nerd Font:size=14" };
-static const char dmenufont[]       = "JetBrainsMono Nerd Font:size=14";
+static const char *fonts[]          = { "JetBrainsMono Nerd Font:size=14:antialias=true:autohint=true", "NotoColorEmoji:pixelsize=14:antialias=true:autohint=true" };
+static const char dmenufont[]       = "JetBrainsMono Nerd Font:size=14:antialias=true:autohint=true";
 static char normbgcolor[]           = "#222222";
 static char normbordercolor[]       = "#444444";
 static char normfgcolor[]           = "#bbbbbb";
@@ -76,7 +76,6 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-//static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbordercolor, "-sf", selfgcolor, NULL };
 static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, NULL };
 static const char *termcmd[]  = { "st", NULL };
 static const char *goatcmd[]  = { "sh", "-c", "mpv \"$(hurl gopher://bitreich.org/0/memecache/index.meme | grep goat | grep -E '\.(mp4|mkv|webm|avi) ' | cut -f2 -d' ' | sort -R | head -n 1)\"", NULL };
@@ -86,29 +85,30 @@ static const char *scratchpadcmd[] = { "st", "-t", scratchpadname, "-g", "120x34
 #include "exitdwm.c"
 static Key keys[] = {
 	/* modifier                     key                        function        argument */
-    { MODKEY|ShiftMask,             XK_a,                      spawn,          SHCMD("/usr/bin/ardour8") },
-    { MODKEY|ShiftMask,             XK_l,                      spawn,          SHCMD("/usr/bin/librewolf") },
-    { MODKEY|ShiftMask,             XK_v,                      spawn,          SHCMD("/usr/bin/vieb") },
-    { MODKEY|ShiftMask,             XK_o,                      spawn,          SHCMD("/usr/bin/onlyoffice-desktopeditors") },
-    { MODKEY|ShiftMask,             XK_t,                      spawn,          SHCMD("/usr/bin/Telegram") },
-    { 0,                            XK_Print,                  spawn,          SHCMD("/usr/bin/flameshot gui") },
-    { MODKEY|ShiftMask,             XK_f,                      spawn,          OSCWRAPPER("/usr/bin/ranger") },
-    { MODKEY|ShiftMask,             XK_n,                      spawn,          OSCWRAPPER("/usr/bin/neomutt") },
-    { MODKEY|ShiftMask,             XK_m,                      spawn,          OSCWRAPPER("/usr/bin/cmus") },
-    { MODKEY|ShiftMask,             XK_s,                      spawn,          SHCMD("/usr/bin/steam") },
-    { 0,                            XF86XK_AudioRaiseVolume,   spawn,          SHCMD("~/.local/bin/media-control volume_up") },
-    { 0,                            XF86XK_AudioLowerVolume,   spawn,          SHCMD("~/.local/bin/media-control volume_down show_music_in_volume_indicator") },
-    { 0,                            XF86XK_AudioMute,          spawn,          SHCMD("~/.local/bin/media-control volume_mute show_music_in_volume_indicator") },
-    { 0,                            XF86XK_MonBrightnessUp,    spawn,          SHCMD("~/.local/bin/media-control brightness_up") },
-    { 0,                            XF86XK_MonBrightnessDown,  spawn,          SHCMD("~/.local/bin/media-control brightness_down") },
-    { 0,                            XF86XK_AudioPause,         spawn,          SHCMD("~/.local/bin/media-control play_pause") },
-    { 0,                            XF86XK_AudioPlay,          spawn,          SHCMD("~/.local/bin/media-control play_pause") },
-    { 0,                            XF86XK_AudioNext,          spawn,          SHCMD("~/.local/bin/media-control next_track") },
-    { 0,                            XF86XK_AudioPrev,          spawn,          SHCMD("~/.local/bin/media-control prev_track") },
-    { MODKEY,                       XK_F6,                     spawn,          SHCMD("~/.local/bin/set-theme ~/Pictures/wallpapers/") },
-    { MODKEY|ShiftMask,             XK_Home,                   spawn,          SHCMD("~/.local/bin/start-tag") },
-    { MODKEY,                       XK_F12,                    spawn,          SHCMD("~/.local/bin/rofi-bluetooth") },
-    { MODKEY,                       XK_F11,                    spawn,          SHCMD("~/.local/bin/rofi-mixer") },
+    { MODKEY|ShiftMask,             XK_a,                      spawn,          SHCMD("ardour8") },
+    { MODKEY|ShiftMask,             XK_l,                      spawn,          SHCMD("librewolf") },
+    { MODKEY|ShiftMask,             XK_v,                      spawn,          SHCMD("vieb") },
+    { MODKEY|ShiftMask,             XK_o,                      spawn,          SHCMD("onlyoffice-desktopeditors") },
+    { MODKEY|ShiftMask,             XK_t,                      spawn,          SHCMD("Telegram") },
+    { 0,                            XK_Print,                  spawn,          SHCMD("flameshot gui") },
+    { MODKEY|ShiftMask,             XK_f,                      spawn,          OSCWRAPPER("ranger") },
+    { MODKEY|ShiftMask,             XK_n,                      spawn,          OSCWRAPPER("neomutt") },
+    { MODKEY|ShiftMask,             XK_m,                      spawn,          OSCWRAPPER("cmus") },
+    { MODKEY|ShiftMask,             XK_s,                      spawn,          SHCMD("bin/steam") },
+    { 0,                            XF86XK_AudioRaiseVolume,   spawn,          SHCMD("media-control volume_up") },
+    { 0,                            XF86XK_AudioLowerVolume,   spawn,          SHCMD("media-control volume_down show_music_in_volume_indicator") },
+    { 0,                            XF86XK_AudioMute,          spawn,          SHCMD("media-control volume_mute show_music_in_volume_indicator") },
+    { 0,                            XF86XK_MonBrightnessUp,    spawn,          SHCMD("media-control brightness_up") },
+    { 0,                            XF86XK_MonBrightnessDown,  spawn,          SHCMD("media-control brightness_down") },
+    { 0,                            XF86XK_AudioPause,         spawn,          SHCMD("media-control play_pause") },
+    { 0,                            XF86XK_AudioPlay,          spawn,          SHCMD("media-control play_pause") },
+    { 0,                            XF86XK_AudioNext,          spawn,          SHCMD("media-control next_track") },
+    { 0,                            XF86XK_AudioPrev,          spawn,          SHCMD("media-control prev_track") },
+    { MODKEY,                       XK_F6,                     spawn,          SHCMD("set-theme ~/Pictures/wallpapers/") },
+    { MODKEY|ShiftMask,             XK_Home,                   spawn,          SHCMD("start-tag") },
+    { MODKEY,                       XK_F10,                    spawn,          SHCMD("rofi-emoji") },
+    { MODKEY,                       XK_F11,                    spawn,          SHCMD("rofi-mixer") },
+    { MODKEY,                       XK_F12,                    spawn,          SHCMD("rofi-bluetooth") },
     { MODKEY|ControlMask|ShiftMask, XK_g,                      spawn,          {.v = goatcmd } },
 	{ MODKEY,                       XK_Escape,                 exitdwm,        {0} },
 	{ MODKEY,                       XK_x,                      movecenter,     {0} },
