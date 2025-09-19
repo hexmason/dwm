@@ -74,7 +74,7 @@ static const Layout layouts[] = {
 
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
-static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, "-fn", dmenufont, "-nb", normbgcolor, "-nf", normfgcolor, "-sb", selbgcolor, "-sf", selfgcolor, NULL };
+static const char *dmenucmd[] = { "dmenu_run", "-m", dmenumon, NULL };
 static const char *termcmd[]  = { "st", NULL };
 static const char scratchpadname[] = "scratchpad";
 static const char *scratchpadcmd[] = { "st", "-t", scratchpadname, "-g", "120x34", NULL };
@@ -102,7 +102,7 @@ static Key keys[] = {
     { 0,                            XF86XK_AudioPrev,          spawn,          SHCMD("media-control prev_track") },
     { MODKEY,                       XK_F6,                     spawn,          SHCMD("set-theme ~/Pictures/wallpapers/") },
     { MODKEY|ShiftMask,             XK_Home,                   spawn,          SHCMD("start-tag") },
-    { MODKEY,                       XK_F10,                    spawn,          SHCMD("rofi-emoji") },
+    { MODKEY,                       XK_F10,                    spawn,          SHCMD("dmenu-emoji") },
     { MODKEY,                       XK_F11,                    spawn,          SHCMD("rofi-mixer") },
     { MODKEY,                       XK_F12,                    spawn,          SHCMD("rofi-bluetooth") },
     { MODKEY,                       XK_Escape,                 exitdwm,        {0} },
