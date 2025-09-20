@@ -41,7 +41,7 @@ static const Rule rules[] = {
     { "Telegram",                   "Telegram",         NULL, 1 << 6,   0,         0,         -1 },
     { "Ardour-8.10.0",              "ardour-8.10.0",    NULL, 1 << 5,   1,         1,         -1 },
     { "st",                         "st",               NULL, 0     ,   1,         0,         -1 },
-    { "Sxiv",                       "sxiv",             NULL, 0     ,   1,         1,         -1 },
+    { "Nsxiv",                      "nsxiv",            NULL, 0     ,   1,         1,         -1 },
     { "Zathura",                    "org.pwmt.zathura", NULL, 0     ,   1,         0,         -1 }
 };
 
